@@ -1,0 +1,9 @@
+name: wecom-location
+version: 1.0.0
+description: 企业微信LOCATION事件处理插件
+author: Your Name
+export:
+  - main.py
+support_platforms:
+  - wecom
+astrbot_version: ">=4.14.6"
