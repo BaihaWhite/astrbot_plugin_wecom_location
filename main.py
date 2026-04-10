@@ -18,13 +18,16 @@ class WecomLocationPlugin(Star):
         """
         处理企业微信LOCATION事件
         """
-        # 获取原始消息
-        raw_message = event.message_obj.raw_message
-        
-        # 检查是否为企业微信平台的LOCATION事件
+        # 检查是否为企业微信平台
         if event.get_platform_name() == "wecom":
-            # 处理事件对象
+            logger.info(f"收到企业微信消息：{event.message_str}")
+            logger.info(f"原始消息：{event.message_obj.raw_message}")
+            
+            # 尝试从不同来源获取位置信息
+            # 1. 从原始消息中获取
+            raw_message = event.message_obj.raw_message
             event_data = {}
+            
             if hasattr(raw_message, '__dict__'):
                 # 将对象转换为字典
                 event_data = vars(raw_message)
@@ -35,7 +38,35 @@ class WecomLocationPlugin(Star):
                 # 已经是字典，直接使用
                 event_data = raw_message
             
-            # 检查消息类型和事件类型
+            # 2. 检查消息内容中是否包含位置信息
+            if not event_data:
+                # 尝试从消息字符串中提取位置信息
+                message_str = event.message_str
+                if "LOCATION事件" in message_str:
+                    # 从消息字符串中提取位置信息
+                    import re
+                    lat_match = re.search(r'纬度=(.*?),', message_str)
+                    lon_match = re.search(r'经度=(.*?),', message_str)
+                    precision_match = re.search(r'精度=(.*?)米', message_str)
+                    
+                    if lat_match and lon_match and precision_match:
+                        latitude = lat_match.group(1)
+                        longitude = lon_match.group(1)
+                        precision = precision_match.group(1)
+                        
+                        # 构造位置信息消息
+                        location_info = f"收到位置信息：\n" \
+                                      f"纬度：{latitude}\n" \
+                                      f"经度：{longitude}\n" \
+                                      f"精度：{precision}米"
+                        
+                        logger.info(f"处理LOCATION事件：{location_info}")
+                        
+                        # 发送位置信息回复
+                        yield event.plain_result(location_info)
+                    return
+            
+            # 3. 从事件数据中提取位置信息
             if event_data.get('MsgType') == 'event' and event_data.get('Event') == 'LOCATION':
                 # 提取位置信息
                 latitude = event_data.get('Latitude', '0')
