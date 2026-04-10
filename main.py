@@ -22,13 +22,25 @@ class WecomLocationPlugin(Star):
         raw_message = event.message_obj.raw_message
         
         # 检查是否为企业微信平台的LOCATION事件
-        if event.get_platform_name() == "wecom" and isinstance(raw_message, dict):
+        if event.get_platform_name() == "wecom":
+            # 处理事件对象
+            event_data = {}
+            if hasattr(raw_message, '__dict__'):
+                # 将对象转换为字典
+                event_data = vars(raw_message)
+                # 检查是否有 _data 属性（可能是事件对象的内部数据）
+                if hasattr(raw_message, '_data'):
+                    event_data = raw_message._data
+            elif isinstance(raw_message, dict):
+                # 已经是字典，直接使用
+                event_data = raw_message
+            
             # 检查消息类型和事件类型
-            if raw_message.get('MsgType') == 'event' and raw_message.get('Event') == 'LOCATION':
+            if event_data.get('MsgType') == 'event' and event_data.get('Event') == 'LOCATION':
                 # 提取位置信息
-                latitude = raw_message.get('Latitude', '0')
-                longitude = raw_message.get('Longitude', '0')
-                precision = raw_message.get('Precision', '0')
+                latitude = event_data.get('Latitude', '0')
+                longitude = event_data.get('Longitude', '0')
+                precision = event_data.get('Precision', '0')
                 
                 # 构造位置信息消息
                 location_info = f"收到位置信息：\n" \
